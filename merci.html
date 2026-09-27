@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscription reçue — NOVACC</title>
+<style>
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Inter', sans-serif; background:#F7F9FA; color:#1C1D1F; text-align:center; padding:24px;
+  }
+  .box{max-width:420px;}
+  a{color:#2563EB; font-weight:600;}
+  p{color:#6A6F73; font-size:0.95rem;}
+</style>
+</head>
+<body>
+  <div class="box">
+    <h2>Merci ! Votre inscription a bien été envoyée.</h2>
+    <p>Redirection vers l'accueil…</p>
+    <p><a href="index.html#formations">Cliquez ici si la redirection ne démarre pas</a></p>
+  </div>
+
+<script>
+  (function(){
+    var target = 'index.html#formations';
+    try{
+      // Si on est dans l'iframe Kobo intégrée sur gratuite.html,
+      // on force la redirection de la fenêtre entière (window.top),
+      // pas seulement de l'iframe.
+      if(window.top && window.top !== window.self){
+        window.top.location.href = target;
+      } else {
+        window.location.href = target;
+      }
+    }catch(e){
+      window.location.href = target;
+    }
+  })();
+</script>
+</body>
+</html>
