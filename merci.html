@@ -17,25 +17,41 @@
 <body>
   <div class="box">
     <h2>Merci ! Votre inscription a bien été envoyée.</h2>
-    <p>Redirection vers l'accueil…</p>
-    <p><a href="index.html#formations">Cliquez ici si la redirection ne démarre pas</a></p>
+    <p>Redirection vers WhatsApp pour partager ce lien d'inscription à vos groupes et à vos amis</p>
+    <p><a id="wa-link" href="https://wa.me/" target="_top">Cliquez ici si la redirection ne démarre pas</a></p>
   </div>
 
 <script>
   (function(){
-    var target = 'index.html#formations';
-    try{
-      // Si on est dans l'iframe Kobo intégrée sur gratuite.html,
-      // on force la redirection de la fenêtre entière (window.top),
-      // pas seulement de l'iframe.
-      if(window.top && window.top !== window.self){
-        window.top.location.href = target;
-      } else {
+    var message =
+      "Samedi 24 Octobre 2026, Nova Academy and Consulting Center vous invite à participer à un Webinaire durant 3 heures (10h : 00-13h : 00) qui se portera sur la Conception d’un questionnaire d’enquête avec XLSForm, son déploiement et sa synchronisation avec Kobotoolbox et KoboCollect.\n\n" +
+      "De manière pratique, ce webinaire se portera sur:\n" +
+      "1-Création d’un questionnaire d’enquête avec XLSForm\n" +
+      "2-Création d’un compte KoboToolbox\n" +
+      "3-Installation de l’application KoboCollect\n" +
+      "4-Synchronisation KoboToolbox et KoboCollect\n\n" +
+      "NB : Certificat disponible sous demande après la réussite de l’examen.\n\n" +
+      "Pour participer à cette formation vous devez vous inscrire sur : https://novacademy-six.vercel.app/gratuite.html";
+
+    var target = 'https://wa.me/?text=' + encodeURIComponent(message);
+
+    // Lien de secours
+    document.getElementById('wa-link').href = target;
+
+    // Redirection après 4 secondes
+    setTimeout(function(){
+      try{
+        // Si on est dans l'iframe Kobo intégrée sur gratuite.html,
+        // on force la redirection de la fenêtre entière (window.top).
+        if(window.top && window.top !== window.self){
+          window.top.location.href = target;
+        } else {
+          window.location.href = target;
+        }
+      }catch(e){
         window.location.href = target;
       }
-    }catch(e){
-      window.location.href = target;
-    }
+    }, 4000);
   })();
 </script>
 </body>
