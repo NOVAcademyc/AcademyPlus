@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVACC – Vérifier un certificat</title>
+<meta name="description" content="Vérifiez l'authenticité d'un certificat NOVACC à partir de son numéro.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316223E'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23D9A441' font-family='serif' font-weight='700'%3EN%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#F7F9FA;color:#1C1D1F;line-height:1.55}
+  header{background:#2563EB;color:#fff;padding:18px 20px}
+  header a{color:#fff;text-decoration:none;font-weight:700;font-size:1.05rem}
+  main{max-width:560px;margin:32px auto;padding:0 16px}
+  h1{font-size:1.5rem;margin:0 0 6px}
+  p.lead{color:#4A5164;margin:0 0 20px}
+  .card{background:#fff;border:1px solid #D1D7DC;padding:22px;border-radius:6px}
+  label{display:block;font-weight:600;margin-bottom:6px}
+  input{width:100%;padding:12px;border:1px solid #1C1D1F;font:inherit;border-radius:4px}
+  input:focus-visible,button:focus-visible{outline:3px solid #A435F0;outline-offset:2px}
+  button{margin-top:14px;padding:12px 20px;background:#A435F0;color:#fff;border:0;font:inherit;font-weight:700;border-radius:4px;cursor:pointer}
+  button:disabled{opacity:.6;cursor:wait}
+  #result{margin-top:18px}
+  .ok,.ko{padding:16px;border-radius:6px;border:1px solid}
+  .ok{background:#EAF6EC;border-color:#1E7A34;color:#14501F}
+  .ko{background:#FDECEC;border-color:#B42318;color:#7A1A12}
+  .ok strong,.ko strong{display:block;font-size:1.1rem;margin-bottom:6px}
+  dl{margin:10px 0 0}dt{font-weight:600;margin-top:8px}dd{margin:0}
+  footer{max-width:560px;margin:24px auto 40px;padding:0 16px;color:#4A5164;font-size:.9rem}
+</style>
+</head>
+<body>
+<header><a href="index.html">NOVACC</a></header>
+<main>
+  <h1>Vérifier un certificat</h1>
+  <p class="lead">Saisissez le numéro inscrit en bas à droite du certificat (format NOVACC-KOBO-XXXXXXXX).</p>
+  <div class="card">
+    <label for="num">Numéro du certificat</label>
+    <input id="num" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="NOVACC-KOBO-A1B2C3D4">
+    <button id="go" type="button">Vérifier</button>
+    <div id="result" role="status" aria-live="polite"></div>
+  </div>
+</main>
+<footer>Pour protéger la vie privée, seul le prénom et l'initiale du nom sont affichés.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+const sb = supabase.createClient('https://lgohbjmbhprvjibkforn.supabase.co', 'sb_publishable_EmDRarwrfmft7DGnsWsgXA_LgeJV-sI');
+const $ = id => document.getElementById(id);
+
+function show(cls, title, lines){
+  const box = document.createElement('div'); box.className = cls;
+  const t = document.createElement('strong'); t.textContent = title; box.appendChild(t);
+  if (lines && lines.length) {
+    const dl = document.createElement('dl');
+    lines.forEach(([k, v]) => { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
+    box.appendChild(dl);
+  }
+  $('result').replaceChildren(box);
+}
+
+async function check(){
+  const n = $('num').value.trim();
+  if (!n) return show('ko', 'Entrez un numéro de certificat.');
+  $('go').disabled = true;
+  const { data, error } = await sb.rpc('verify_certificate', { p_number: n });
+  $('go').disabled = false;
+  if (error) return show('ko', 'Vérification impossible pour le moment. Réessayez plus tard.');
+  if (!data || !data.valid) return show('ko', 'Certificat introuvable', [['Conseil', 'Vérifiez le numéro (8 caractères après NOVACC-KOBO-). Si le doute persiste, contactez NOVACC sur WhatsApp au +509 41736388.']]);
+  const d = new Date(data.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  show('ok', 'Certificat authentique', [['Délivré à', data.name], ['Formation', data.course], ['Date', d]]);
+}
+$('go').onclick = check;
+$('num').addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+const q = new URLSearchParams(location.search).get('n');
+if (q) { $('num').value = q; check(); }
+</script>
+</body>
+</html>
