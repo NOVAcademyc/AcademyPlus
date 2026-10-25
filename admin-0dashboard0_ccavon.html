@@ -327,6 +327,21 @@
     </div>
     <div id="confirmEnrollStatus"></div>
   </section>
+
+  <section class="card">
+    <h3>Demande de certificat de la formation XSLForm/Kobo</h3>
+    <div class="card-sub">Demandes de certificat (table <code>certificate_requests</code>) — cliquez sur "Confirmer le paiement" après vérification du paiement.</div>
+    <div class="courses-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Nom</th><th>Email</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="certRequestsTableBody"><tr><td colspan="6">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="courses-empty-hint" id="certRequestsEmptyHint">Aucune demande de certificat pour le moment.</p>
+    <div id="certRequestsStatus" style="margin-top:14px;font-size:0.88rem;padding:10px 14px;border-radius:6px;display:none;"></div>
+  </section>
 </main>
 
 <script>
@@ -795,12 +810,99 @@
     }
   }
 
+  // ---- Demandes de certificat (table "certificate_requests") ----
+  // admin_list_certificate_requests() et admin_confirm_certificate_payment(p_request_id) sont
+  // des RPC "security definer" qui vérifient is_admin() : la RLS de "certificate_requests"
+  // ne laisse chaque élève voir que ses propres demandes.
+  function escHtml(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  function showCertRequestStatus(msg, isError){
+    var box = document.getElementById('certRequestsStatus');
+    box.textContent = msg;
+    box.style.display = 'block';
+    box.style.background = isError ? '#FDEAEA' : '#E4F5E9';
+    box.style.color = isError ? 'var(--red)' : 'var(--teal)';
+  }
+
+  function renderCertRequests(rows){
+    var tbody = document.getElementById('certRequestsTableBody');
+    var emptyHint = document.getElementById('certRequestsEmptyHint');
+
+    if(!rows || rows.length === 0){
+      tbody.innerHTML = '';
+      emptyHint.classList.add('show');
+      return;
+    }
+    emptyHint.classList.remove('show');
+
+    tbody.innerHTML = rows.map(function(r){
+      var isPaid = r.status === 'paid';
+      var badge = isPaid
+        ? '<span class="badge confirmed">Payé' + (r.paid_at ? ' · ' + formatDateFr(r.paid_at) : '') + '</span>'
+        : '<span class="badge pending">En attente</span>';
+      var fullName = ((r.prenom || '') + ' ' + (r.nom || '')).trim() || '—';
+      var action = isPaid ? '—' :
+        '<div class="course-actions"><button type="button" class="act-publish act-confirm-cert" ' +
+        'data-id="' + escHtml(r.id) + '" data-email="' + escHtml(r.email) + '">Confirmer le paiement</button></div>';
+      return '<tr>' +
+        '<td>' + formatDateFr(r.created_at) + '</td>' +
+        '<td>' + escHtml(fullName) + '</td>' +
+        '<td>' + escHtml(r.email || '—') + '</td>' +
+        '<td>' + formatHTG(r.amount_htg) + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' + action + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  async function loadCertRequests(){
+    try {
+      var res = await supabaseClient.rpc('admin_list_certificate_requests');
+      if(res.error) throw res.error;
+      renderCertRequests(res.data || []);
+    } catch(err){
+      console.error(err);
+      document.getElementById('certRequestsTableBody').innerHTML =
+        '<tr><td colspan="6">Erreur de chargement : ' + escHtml(err.message || err) + '</td></tr>';
+    }
+  }
+
+  document.getElementById('certRequestsTableBody').addEventListener('click', async function(ev){
+    var btn = ev.target.closest('.act-confirm-cert');
+    if(!btn) return;
+    var requestId = btn.getAttribute('data-id');
+    var email = btn.getAttribute('data-email');
+    btn.disabled = true;
+    var originalLabel = btn.textContent;
+    btn.textContent = '…';
+    try {
+      var res = await supabaseClient.rpc('admin_confirm_certificate_payment', { p_request_id: requestId });
+      if(res.error) throw res.error;
+      if(!res.data){
+        showCertRequestStatus('Cette demande est déjà confirmée ou introuvable.', true);
+      } else {
+        showCertRequestStatus('✓ Paiement du certificat confirmé pour ' + email + '.', false);
+      }
+      await loadCertRequests();
+    } catch(err){
+      console.error(err);
+      showCertRequestStatus('Erreur : ' + (err.message || err), true);
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+
   function loadAll(){
     loadDashboardData();
     loadAccounts();
     loadCourses();
     loadPayouts();
     loadPendingEnrollments();
+    loadCertRequests();
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
