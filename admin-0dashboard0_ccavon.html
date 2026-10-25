@@ -188,6 +188,8 @@
     <div class="kpi"><div class="label">Actifs (7 jours)</div><div class="value mono" id="kpi7d">—</div></div>
     <div class="kpi"><div class="label">Actifs (30 jours)</div><div class="value mono" id="kpi30d">—</div></div>
     <div class="kpi"><div class="label">Inscriptions confirmées</div><div class="value mono" id="kpiConfirmed">—</div><div class="sub" id="kpiPendingSub">—</div></div>
+    <div class="kpi"><div class="label">Visiteurs uniques</div><div class="value mono" id="kpiVisitors">—</div><div class="sub" id="kpiVisitsSub">—</div></div>
+    <div class="kpi"><div class="label">Visiteurs (aujourd'hui)</div><div class="value mono" id="kpiVisitorsToday">—</div><div class="sub" id="kpiVisitors7dSub">—</div></div>
     <div class="kpi"><div class="label">Cours en attente</div><div class="value mono" id="kpiCoursesPending">—</div><div class="sub" id="kpiCoursesPublishedSub">—</div></div>
   </section>
 
@@ -896,6 +898,25 @@
     }
   });
 
+  // ---- Visiteurs du site (table "site_visits") ----
+  // admin_visitor_stats_count() : RPC "security definer" qui vérifie is_admin(). Les visites
+  // sont enregistrées depuis le site public (voir script de suivi dans index.html).
+  async function loadVisitors(){
+    try {
+      var res = await supabaseClient.rpc('admin_visitor_stats_count');
+      if(res.error) throw res.error;
+      var v = res.data || {};
+      document.getElementById('kpiVisitors').textContent = v.unique_visitors ?? 0;
+      document.getElementById('kpiVisitsSub').textContent = (v.total_visits ?? 0) + ' visites au total';
+      document.getElementById('kpiVisitorsToday').textContent = v.visitors_today ?? 0;
+      document.getElementById('kpiVisitors7dSub').textContent = (v.visitors_7d ?? 0) + ' sur 7 j · ' + (v.visitors_30d ?? 0) + ' sur 30 j';
+    } catch(err){
+      console.error(err);
+      document.getElementById('kpiVisitors').textContent = '!';
+      document.getElementById('kpiVisitsSub').textContent = 'Erreur de chargement';
+    }
+  }
+
   function loadAll(){
     loadDashboardData();
     loadAccounts();
@@ -903,6 +924,7 @@
     loadPayouts();
     loadPendingEnrollments();
     loadCertRequests();
+    loadVisitors();
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
