@@ -7278,6 +7278,23 @@ document.querySelectorAll('.password-toggle-btn').forEach(function(btn){
     btn.setAttribute('aria-label', !isVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
   });
 });
+
+(function(){
+  try {
+    var vid = localStorage.getItem('novacc_vid');
+    if(!vid){
+      vid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2));
+      localStorage.setItem('novacc_vid', vid);
+    }
+    // Une seule visite comptée par session de navigation
+    if(sessionStorage.getItem('novacc_visit_logged')) return;
+    sessionStorage.setItem('novacc_visit_logged', '1');
+    supabaseClient.from('site_visits').insert({
+      visitor_id: vid,
+      page: location.pathname.slice(0, 200)
+    }).then(function(){}, function(){});
+  } catch(e){}
+})();
 </script>
 </body>
 </html>
